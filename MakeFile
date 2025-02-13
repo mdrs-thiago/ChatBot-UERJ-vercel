@@ -1,0 +1,11 @@
+venv:
+	python -m venv meu_venv
+
+create-migrations:
+	python manage.py makemigrations
+
+migrate:
+	python manage.py migrate
+
+setup: venv
+	. meu_venv/bin/activate && make migrate
