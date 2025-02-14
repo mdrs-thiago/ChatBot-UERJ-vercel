@@ -9,3 +9,7 @@ migrate:
 
 setup: venv
 	. meu_venv/bin/activate && make migrate
+
+run:
+	venv/Scripts/activate
+	python myapi\manage.py runserver 0.0.0.0:8000
