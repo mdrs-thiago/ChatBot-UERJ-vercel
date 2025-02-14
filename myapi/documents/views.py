@@ -37,10 +37,16 @@ class DocumentUploadView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = DocumentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+            document = serializer.save()
+            
+            file_path = document.file.path
+            if file_path.endswith(".txt"):
+                with open(file_path, "r", encoding="utf-8") as file:
+                    document.content = file.read()
+                    document.save()
 
+            return Response({"message": "Documento salvo!", "id": document.id})
+        return Response(serializer.errors, status=400)
 
 class AskQuestionView(APIView):
 
@@ -66,11 +72,7 @@ class AskQuestionView(APIView):
         serializer = QuestionSerializer(data=request.data)
         if serializer.is_valid():
             document = get_object_or_404(Document, id=serializer.validated_data["document_id"])
-            
-            file_path = os.path.join(os.path.dirname(__file__), document.file.path)
-            
-            with open(file_path, "r", encoding="utf-8") as file:
-                text = file.read()
+            text = document.content
             
             answer = answer_question(serializer.validated_data["question"], text)
             return Response({"answer": answer})
