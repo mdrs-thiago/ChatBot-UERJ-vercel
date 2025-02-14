@@ -9,6 +9,7 @@
             "args": ["runserver", "0.0.0.0:8000"],
             "django": true,
             "justMyCode": false,
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
             "env": {
                 "DJANGO_SETTINGS_MODULE": "myapi.settings"
             }
