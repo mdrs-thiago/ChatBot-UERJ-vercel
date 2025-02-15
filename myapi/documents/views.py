@@ -5,9 +5,9 @@ from django.shortcuts import get_object_or_404
 from .models import Document
 from .serializers import DocumentSerializer, QuestionSerializer
 from .ia_service import answer_question
-import os
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 
 
 
@@ -35,18 +35,17 @@ class DocumentUploadView(APIView):
         responses={201: "Documento criado com sucesso", 400: "Erro nos dados enviados"},
     )
     def post(self, request, *args, **kwargs):
-        serializer = DocumentSerializer(data=request.data)
-        if serializer.is_valid():
-            document = serializer.save()
-            
-            file_path = document.file.path
-            if file_path.endswith(".txt"):
-                with open(file_path, "r", encoding="utf-8") as file:
-                    document.content = file.read()
-                    document.save()
+        title = request.data.get("title")
+        file = request.FILES.get("file")
 
-            return Response({"message": "Documento salvo!", "id": document.id})
-        return Response(serializer.errors, status=400)
+        if not file or not title:
+            return Response({"error": "Título e arquivo são obrigatórios"}, status=status.HTTP_400_BAD_REQUEST)
+
+        content = file.read().decode("utf-8")
+
+        document = Document.objects.create(title=title, content=content)
+
+        return Response(DocumentSerializer(document).data, status=status.HTTP_201_CREATED)
 
 class AskQuestionView(APIView):
 
