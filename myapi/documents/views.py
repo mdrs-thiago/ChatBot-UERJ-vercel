@@ -16,6 +16,7 @@ class DocumentUploadView(APIView):
     
     @swagger_auto_schema(
         operation_description="Faz o upload de um documento",
+        tags=["Document"],
         manual_parameters=[
             openapi.Parameter(
                 name="title",
@@ -46,11 +47,12 @@ class DocumentUploadView(APIView):
         document = Document.objects.create(title=title, content=content)
 
         return Response(DocumentSerializer(document).data, status=status.HTTP_201_CREATED)
-
+    
 class AskQuestionView(APIView):
 
     @swagger_auto_schema(
         operation_description="Recebe uma pergunta e responde com base no documento especificado.",
+        tags=["Document"],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             required=["question", "document_id"],
@@ -77,3 +79,37 @@ class AskQuestionView(APIView):
             return Response({"answer": answer})
         
         return Response(serializer.errors, status=400)
+
+class DocumentListView(APIView):
+    """
+    Retorna todos os documentos salvos no banco.
+    """
+
+    @swagger_auto_schema(
+        operation_description="Lista todos os documentos.",
+        tags=["Document"],
+        responses={200: DocumentSerializer(many=True)}
+    )
+    def get(self, request):
+        documents = Document.objects.all()
+        serializer = DocumentSerializer(documents, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class DocumentDetailView(APIView):
+    """
+    Retorna um único documento pelo ID.
+    """
+
+    @swagger_auto_schema(
+        operation_description="Obtém um documento pelo ID.",
+        tags=["Document"],
+        manual_parameters=[
+            openapi.Parameter("document_id", openapi.IN_PATH, type=openapi.TYPE_INTEGER, description="ID do Documento")
+        ],
+        responses={200: DocumentSerializer(), 404: "Documento não encontrado"}
+    )
+    def get(self, request, document_id):
+        document = get_object_or_404(Document, id=document_id)
+        serializer = DocumentSerializer(document)
+        return Response(serializer.data, status=status.HTTP_200_OK)
