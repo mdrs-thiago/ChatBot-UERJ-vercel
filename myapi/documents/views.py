@@ -1,19 +1,19 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
-from .models import Document
-from .serializers import DocumentSerializer, QuestionSerializer
-from .ia_service import answer_question
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from documents.ia_service import answer_question
+from documents.models import Document
+from documents.serializers import DocumentSerializer, QuestionSerializer
 
 
 class DocumentUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    
+
     @swagger_auto_schema(
         operation_description="Faz o upload de um documento",
         tags=["Document"],
@@ -40,14 +40,20 @@ class DocumentUploadView(APIView):
         file = request.FILES.get("file")
 
         if not file or not title:
-            return Response({"error": "Título e arquivo são obrigatórios"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Título e arquivo são obrigatórios"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         content = file.read().decode("utf-8")
 
         document = Document.objects.create(title=title, content=content)
 
-        return Response(DocumentSerializer(document).data, status=status.HTTP_201_CREATED)
-    
+        return Response(
+            DocumentSerializer(document).data, status=status.HTTP_201_CREATED
+        )
+
+
 class AskQuestionView(APIView):
 
     @swagger_auto_schema(
@@ -59,11 +65,11 @@ class AskQuestionView(APIView):
             properties={
                 "question": openapi.Schema(
                     type=openapi.TYPE_STRING,
-                    description="A pergunta que deseja fazer sobre o documento."
+                    description="A pergunta que deseja fazer sobre o documento.",
                 ),
                 "document_id": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="O ID do documento previamente enviado."
+                    description="O ID do documento previamente enviado.",
                 ),
             },
         ),
@@ -72,13 +78,16 @@ class AskQuestionView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = QuestionSerializer(data=request.data)
         if serializer.is_valid():
-            document = get_object_or_404(Document, id=serializer.validated_data["document_id"])
+            document = get_object_or_404(
+                Document, id=serializer.validated_data["document_id"]
+            )
             text = document.content
-            
+
             answer = answer_question(serializer.validated_data["question"], text)
             return Response({"answer": answer})
-        
+
         return Response(serializer.errors, status=400)
+
 
 class DocumentListView(APIView):
     """
@@ -88,7 +97,7 @@ class DocumentListView(APIView):
     @swagger_auto_schema(
         operation_description="Lista todos os documentos.",
         tags=["Document"],
-        responses={200: DocumentSerializer(many=True)}
+        responses={200: DocumentSerializer(many=True)},
     )
     def get(self, request):
         documents = Document.objects.all()
@@ -105,9 +114,14 @@ class DocumentDetailView(APIView):
         operation_description="Obtém um documento pelo ID.",
         tags=["Document"],
         manual_parameters=[
-            openapi.Parameter("public_id", openapi.IN_PATH, type=openapi.TYPE_STRING, description="ID do Documento")
+            openapi.Parameter(
+                "public_id",
+                openapi.IN_PATH,
+                type=openapi.TYPE_STRING,
+                description="ID do Documento",
+            )
         ],
-        responses={200: DocumentSerializer(), 404: "Documento não encontrado"}
+        responses={200: DocumentSerializer(), 404: "Documento não encontrado"},
     )
     def get(self, request, public_id):
         document = get_object_or_404(Document, public_id=public_id)
