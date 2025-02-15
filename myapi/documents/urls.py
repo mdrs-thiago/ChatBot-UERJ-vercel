@@ -4,6 +4,6 @@ from .views import DocumentUploadView, AskQuestionView, DocumentDetailView, Docu
 urlpatterns = [
     path("upload/", DocumentUploadView.as_view(), name="upload-document"),
     path("ask/", AskQuestionView.as_view(), name="ask-question"),
-    path("detail/<int:document_id>/", DocumentDetailView.as_view(), name="detail-document"),
+    path("detail/<str:public_id>/", DocumentDetailView.as_view(), name="detail-document"),
     path("list/", DocumentListView.as_view(), name="list-document"),
 ]

@@ -105,11 +105,11 @@ class DocumentDetailView(APIView):
         operation_description="Obtém um documento pelo ID.",
         tags=["Document"],
         manual_parameters=[
-            openapi.Parameter("document_id", openapi.IN_PATH, type=openapi.TYPE_INTEGER, description="ID do Documento")
+            openapi.Parameter("public_id", openapi.IN_PATH, type=openapi.TYPE_STRING, description="ID do Documento")
         ],
         responses={200: DocumentSerializer(), 404: "Documento não encontrado"}
     )
-    def get(self, request, document_id):
-        document = get_object_or_404(Document, id=document_id)
+    def get(self, request, public_id):
+        document = get_object_or_404(Document, public_id=public_id)
         serializer = DocumentSerializer(document)
         return Response(serializer.data, status=status.HTTP_200_OK)
