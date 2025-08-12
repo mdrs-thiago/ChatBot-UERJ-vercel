@@ -13,7 +13,10 @@ from documents.serializers import DocumentSerializer, QuestionSerializer, RAGQue
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.schema import Document as LCDocument
+    
+import os
 
+FAISS_INDEX_PATH = "faiss_index"
 
 class DocumentUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -169,31 +172,60 @@ class AskRAGView(APIView):
         question = serializer.validated_data["question"]
         top_k = request.data.get("top_k", 3)
 
-        # Buscando todos documentos do banco
-        docs_queryset = Document.objects.exclude(content__isnull=True).exclude(content__exact="")
-        if not docs_queryset.exists():
-            return Response({"error": "Nenhum documento disponível para busca."}, status=400)
-
-        # Convertendo para formato LangChain
-        lc_docs = [
-            LCDocument(page_content=doc.content, metadata={"title": doc.title, "id": str(doc.public_id)})
-            for doc in docs_queryset
-        ]
-
-        # Criando embeddings e índice FAISS
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        db = FAISS.from_documents(lc_docs, embeddings)
-        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
 
-        # Buscando contexto relevante
+        try:
+            db = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+        except Exception as e:
+            return Response({"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500)
+
+        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
         relevant_docs = retriever.get_relevant_documents(question)
         context = "\n\n".join([d.page_content for d in relevant_docs])
 
-        # LLM gemmini
         answer = answer_question(question, context)
 
         return Response({
             "question": question,
             "answer": answer,
             "sources": [d.metadata for d in relevant_docs]
-        }, status=status.HTTP_200_OK)
+        }, status=200)
+
+
+class RAGIndexBuildView(APIView):
+    @swagger_auto_schema(
+        operation_summary="(Re)cria o índice FAISS com todos os documentos",
+        operation_description="Busca todos os documentos no banco, gera embeddings, cria ou atualiza o índice FAISS, e salva no disco.",
+        responses={
+            200: openapi.Response(description="Índice criado/atualizado com sucesso."),
+            400: openapi.Response(description="Nenhum documento disponível para indexação."),
+            500: openapi.Response(description="Erro ao criar o índice.")
+        },
+        tags=["Document"],
+    )
+    def post(self, request):
+        try:
+            docs_queryset = Document.objects.exclude(content__isnull=True).exclude(content__exact="")
+            if not docs_queryset.exists():
+                return Response({"error": "Nenhum documento disponível para indexação."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            # Converter para LangChain Document
+            lc_docs = [
+                LCDocument(page_content=doc.content, metadata={"title": doc.title, "id": str(doc.public_id)})
+                for doc in docs_queryset
+            ]
+
+            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+            # Cria o índice FAISS do zero
+            db = FAISS.from_documents(lc_docs, embeddings)
+
+            # Salva no disco (pasta criada se não existir)
+            os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
+            db.save_local(FAISS_INDEX_PATH)
+
+            return Response({"message": "Índice FAISS criado/atualizado com sucesso."})
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
