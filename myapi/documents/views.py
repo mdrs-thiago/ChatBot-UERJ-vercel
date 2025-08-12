@@ -68,7 +68,7 @@ class AskQuestionView(APIView):
                     description="A pergunta que deseja fazer sobre o documento.",
                 ),
                 "document_id": openapi.Schema(
-                    type=openapi.TYPE_INTEGER,
+                    type=openapi.TYPE_STRING,
                     description="O ID do documento previamente enviado.",
                 ),
             },
@@ -79,7 +79,7 @@ class AskQuestionView(APIView):
         serializer = QuestionSerializer(data=request.data)
         if serializer.is_valid():
             document = get_object_or_404(
-                Document, id=serializer.validated_data["document_id"]
+                Document, public_id=serializer.validated_data["document_id"]
             )
             text = document.content
 

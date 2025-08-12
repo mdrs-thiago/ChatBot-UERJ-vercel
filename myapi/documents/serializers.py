@@ -11,4 +11,4 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.Serializer):
     question = serializers.CharField()
-    document_id = serializers.IntegerField()
+    document_id = serializers.CharField()
