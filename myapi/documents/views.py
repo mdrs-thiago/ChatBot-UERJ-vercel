@@ -8,7 +8,11 @@ from rest_framework.views import APIView
 
 from documents.ia_service import answer_question
 from documents.models import Document
-from documents.serializers import DocumentSerializer, QuestionSerializer
+from documents.serializers import DocumentSerializer, QuestionSerializer, RAGQuestionSerializer
+
+from langchain_community.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.schema import Document as LCDocument
 
 
 class DocumentUploadView(APIView):
@@ -127,3 +131,69 @@ class DocumentDetailView(APIView):
         document = get_object_or_404(Document, public_id=public_id)
         serializer = DocumentSerializer(document)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+
+class AskRAGView(APIView):
+    """
+    Recebe uma pergunta e busca a resposta usando RAG
+    com base em todos os documentos armazenados.
+    """
+
+    @swagger_auto_schema(
+        operation_description="Pergunta usando RAG com base nos documentos salvos.",
+        tags=["Document"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["question"],
+            properties={
+                "question": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Pergunta a ser respondida usando os documentos.",
+                ),
+                "top_k": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Quantidade de trechos mais relevantes a considerar (padrão: 3).",
+                ),
+            },
+        ),
+        responses={200: "Resposta gerada com sucesso", 400: "Erro na requisição"},
+    )
+    def post(self, request):
+        serializer = RAGQuestionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        question = serializer.validated_data["question"]
+        top_k = request.data.get("top_k", 3)
+
+        # Buscando todos documentos do banco
+        docs_queryset = Document.objects.exclude(content__isnull=True).exclude(content__exact="")
+        if not docs_queryset.exists():
+            return Response({"error": "Nenhum documento disponível para busca."}, status=400)
+
+        # Convertendo para formato LangChain
+        lc_docs = [
+            LCDocument(page_content=doc.content, metadata={"title": doc.title, "id": str(doc.public_id)})
+            for doc in docs_queryset
+        ]
+
+        # Criando embeddings e índice FAISS
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        db = FAISS.from_documents(lc_docs, embeddings)
+        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
+
+        # Buscando contexto relevante
+        relevant_docs = retriever.get_relevant_documents(question)
+        context = "\n\n".join([d.page_content for d in relevant_docs])
+
+        # LLM gemmini
+        answer = answer_question(question, context)
+
+        return Response({
+            "question": question,
+            "answer": answer,
+            "sources": [d.metadata for d in relevant_docs]
+        }, status=status.HTTP_200_OK)

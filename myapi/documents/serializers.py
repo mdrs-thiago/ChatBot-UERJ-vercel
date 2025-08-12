@@ -12,3 +12,8 @@ class DocumentSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.Serializer):
     question = serializers.CharField()
     document_id = serializers.CharField()
+
+
+class RAGQuestionSerializer(serializers.Serializer):
+    question = serializers.CharField(required=True)
+    top_k = serializers.IntegerField(required=False, min_value=1, default=3)
