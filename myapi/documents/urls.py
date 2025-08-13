@@ -1,7 +1,12 @@
 from django.urls import path
-
-from documents.views import (AskQuestionView, DocumentDetailView, DocumentListView, AskRAGView,
-                    DocumentUploadView, RAGIndexBuildView)
+from documents.views import (
+    AskQuestionView,
+    AskRAGView,
+    DocumentDetailView,
+    DocumentListView,
+    DocumentUploadView,
+    RAGIndexBuildView,
+)
 
 urlpatterns = [
     path("update-docs/", RAGIndexBuildView.as_view(), name="update-documents"),

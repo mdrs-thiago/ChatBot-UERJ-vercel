@@ -1,22 +1,25 @@
+import os
+
 from django.shortcuts import get_object_or_404
+from documents.ia_service import answer_question
+from documents.models import Document
+from documents.serializers import (
+    DocumentSerializer,
+    QuestionSerializer,
+    RAGQuestionSerializer,
+)
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.schema import Document as LCDocument
+from langchain_community.vectorstores import FAISS
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from documents.ia_service import answer_question
-from documents.models import Document
-from documents.serializers import DocumentSerializer, QuestionSerializer, RAGQuestionSerializer
-
-from langchain_community.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.schema import Document as LCDocument
-    
-import os
-
 FAISS_INDEX_PATH = "faiss_index"
+
 
 class DocumentUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -136,9 +139,6 @@ class DocumentDetailView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
-
 class AskRAGView(APIView):
     """
     Recebe uma pergunta e busca a resposta usando RAG
@@ -175,21 +175,30 @@ class AskRAGView(APIView):
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
         try:
-            db = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+            db = FAISS.load_local(
+                FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True
+            )
         except Exception as e:
-            return Response({"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500)
+            return Response(
+                {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
+            )
 
-        retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
+        retriever = db.as_retriever(
+            search_type="similarity", search_kwargs={"k": top_k}
+        )
         relevant_docs = retriever.get_relevant_documents(question)
         context = "\n\n".join([d.page_content for d in relevant_docs])
 
         answer = answer_question(question, context)
 
-        return Response({
-            "question": question,
-            "answer": answer,
-            "sources": [d.metadata for d in relevant_docs]
-        }, status=200)
+        return Response(
+            {
+                "question": question,
+                "answer": answer,
+                "sources": [d.metadata for d in relevant_docs],
+            },
+            status=200,
+        )
 
 
 class RAGIndexBuildView(APIView):
@@ -198,21 +207,30 @@ class RAGIndexBuildView(APIView):
         operation_description="Busca todos os documentos no banco, gera embeddings, cria ou atualiza o índice FAISS, e salva no disco.",
         responses={
             200: openapi.Response(description="Índice criado/atualizado com sucesso."),
-            400: openapi.Response(description="Nenhum documento disponível para indexação."),
-            500: openapi.Response(description="Erro ao criar o índice.")
+            400: openapi.Response(
+                description="Nenhum documento disponível para indexação."
+            ),
+            500: openapi.Response(description="Erro ao criar o índice."),
         },
         tags=["Document"],
     )
     def post(self, request):
         try:
-            docs_queryset = Document.objects.exclude(content__isnull=True).exclude(content__exact="")
+            docs_queryset = Document.objects.exclude(content__isnull=True).exclude(
+                content__exact=""
+            )
             if not docs_queryset.exists():
-                return Response({"error": "Nenhum documento disponível para indexação."},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Nenhum documento disponível para indexação."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # Converter para LangChain Document
             lc_docs = [
-                LCDocument(page_content=doc.content, metadata={"title": doc.title, "id": str(doc.public_id)})
+                LCDocument(
+                    page_content=doc.content,
+                    metadata={"title": doc.title, "id": str(doc.public_id)},
+                )
                 for doc in docs_queryset
             ]
 
@@ -228,4 +246,6 @@ class RAGIndexBuildView(APIView):
             return Response({"message": "Índice FAISS criado/atualizado com sucesso."})
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
