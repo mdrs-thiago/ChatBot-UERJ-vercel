@@ -249,3 +249,24 @@ class RAGIndexBuildView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class DocumentDeleteView(APIView):
+    @swagger_auto_schema(
+        operation_summary="Deleta documento com base no public_id",
+        operation_description="Procura o documento no banco com base no public_id e deleta.",
+        responses={
+            204: openapi.Response(description="Documento deletado com sucesso."),
+            404: openapi.Response(
+                description="Nenhum documento encontrado."
+            ),
+        },
+        tags=["Document"],
+    )
+    def delete(self, request, public_id):
+        document = get_object_or_404(Document, public_id=public_id)
+        document.delete()
+        return Response(
+            {"message": "Documento deletado com sucesso."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
