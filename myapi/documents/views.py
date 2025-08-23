@@ -20,6 +20,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from documents.helpers.chunk_helper import split_juridical_chunks
+from documents.helpers.normalize import normalize
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -175,7 +176,7 @@ class AskRAGView(APIView):
             logger.warning(f"Pergunta inválida recebida: {request.data}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        question = serializer.validated_data["question"]
+        question = normalize(serializer.validated_data["question"])
         top_k = request.data.get("top_k", 5)
 
         embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
@@ -250,7 +251,7 @@ class RAGIndexBuildView(APIView):
                 for i, chunk in enumerate(chunks):
                     lc_docs.append(
                         LCDocument(
-                            page_content=chunk,
+                            page_content=normalize(chunk),
                             metadata={
                                 "title": doc.title,
                                 "id": str(doc.public_id),
