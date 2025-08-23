@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from documents.ia_service import answer_question
 from documents.models import Document
@@ -17,6 +18,7 @@ from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from documents.helpers.chunk_helper import split_juridical_chunks
 
 FAISS_INDEX_PATH = "faiss_index"
 
@@ -158,7 +160,7 @@ class AskRAGView(APIView):
                 ),
                 "top_k": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="Quantidade de trechos mais relevantes a considerar (padrão: 3).",
+                    description="Quantidade de trechos mais relevantes a considerar (padrão: 5).",
                 ),
             },
         ),
@@ -170,9 +172,9 @@ class AskRAGView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         question = serializer.validated_data["question"]
-        top_k = request.data.get("top_k", 3)
+        top_k = request.data.get("top_k", 5)
 
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
 
         try:
             db = FAISS.load_local(
@@ -187,7 +189,14 @@ class AskRAGView(APIView):
             search_type="similarity", search_kwargs={"k": top_k}
         )
         relevant_docs = retriever.get_relevant_documents(question)
-        context = "\n\n".join([d.page_content for d in relevant_docs])
+
+        full_docs = []
+        for doc in relevant_docs:
+            object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
+            full_docs.append(object_of_document)
+
+        full_docs = list(set(full_docs))
+        context = "\n\n".join([d.content for d in full_docs])
 
         answer = answer_question(question, context)
 
@@ -195,7 +204,8 @@ class AskRAGView(APIView):
             {
                 "question": question,
                 "answer": answer,
-                "sources": [d.metadata for d in relevant_docs],
+                "sources": [d.title for d in full_docs],
+                "chunks": [d.metadata for d in relevant_docs],
             },
             status=200,
         )
@@ -225,16 +235,23 @@ class RAGIndexBuildView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Converter para LangChain Document
-            lc_docs = [
-                LCDocument(
-                    page_content=doc.content,
-                    metadata={"title": doc.title, "id": str(doc.public_id)},
-                )
-                for doc in docs_queryset
-            ]
+            # Gerar chunks de cada documento
+            lc_docs = []
+            for doc in docs_queryset:
+                chunks = split_juridical_chunks(doc.content, max_len=600)
+                for i, chunk in enumerate(chunks):
+                    lc_docs.append(
+                        LCDocument(
+                            page_content=chunk,
+                            metadata={
+                                "title": doc.title,
+                                "id": str(doc.public_id),
+                                "chunk_id": i,  # opcional: identificar qual pedaço
+                            },
+                        )
+                    )
 
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
 
             # Cria o índice FAISS do zero
             db = FAISS.from_documents(lc_docs, embeddings)
