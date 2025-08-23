@@ -257,9 +257,7 @@ class DocumentDeleteView(APIView):
         operation_description="Procura o documento no banco com base no public_id e deleta.",
         responses={
             204: openapi.Response(description="Documento deletado com sucesso."),
-            404: openapi.Response(
-                description="Nenhum documento encontrado."
-            ),
+            404: openapi.Response(description="Nenhum documento encontrado."),
         },
         tags=["Document"],
     )
