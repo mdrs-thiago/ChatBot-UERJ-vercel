@@ -1,4 +1,5 @@
 import os
+import logging
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -21,6 +22,7 @@ from rest_framework.views import APIView
 from documents.helpers.chunk_helper import split_juridical_chunks
 
 FAISS_INDEX_PATH = "faiss_index"
+logger = logging.getLogger(__name__)
 
 
 class DocumentUploadView(APIView):
@@ -167,8 +169,10 @@ class AskRAGView(APIView):
         responses={200: "Resposta gerada com sucesso", 400: "Erro na requisição"},
     )
     def post(self, request):
+        logger.info(f"[AskRAGView][post] - Informações recebidas: {request.data}")
         serializer = RAGQuestionSerializer(data=request.data)
         if not serializer.is_valid():
+            logger.warning(f"Pergunta inválida recebida: {request.data}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         question = serializer.validated_data["question"]
@@ -181,6 +185,7 @@ class AskRAGView(APIView):
                 FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True
             )
         except Exception as e:
+            logger.error(f"Erro ao carregar índice FAISS: {str(e)}")
             return Response(
                 {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
             )
@@ -189,6 +194,9 @@ class AskRAGView(APIView):
             search_type="similarity", search_kwargs={"k": top_k}
         )
         relevant_docs = retriever.get_relevant_documents(question)
+        logger.info(
+            f"Documentos relevantes encontrados: {[d.metadata for d in relevant_docs]}"
+        )
 
         full_docs = []
         for doc in relevant_docs:

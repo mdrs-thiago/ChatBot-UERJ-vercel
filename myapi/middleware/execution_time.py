@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 """Middleware to measure and log the execution time of each request."""
 
 import time
@@ -17,4 +19,5 @@ class ExecutionTimeMiddleware(MiddlewareMixin):
             response["X-Execution-Time"] = str(round(duration, 3))
             if isinstance(response, JsonResponse) and hasattr(response, "data"):
                 response.data["duration_seconds"] = round(duration, 3)
+            logger.info(f"[ExecutionTimeMiddleware] {request.method} {request.path} levou {round(duration, 3)}s")
         return response
