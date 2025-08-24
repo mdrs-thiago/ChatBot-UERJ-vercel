@@ -20,6 +20,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from documents.helpers.chunk_helper import split_juridical_chunks
+from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
 
 FAISS_INDEX_PATH = "faiss_index"
@@ -244,10 +245,9 @@ class RAGIndexBuildView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Gerar chunks de cada documento
             lc_docs = []
             for doc in docs_queryset:
-                chunks = split_juridical_chunks(doc.content, max_len=600)
+                chunks = get_chunks(doc.content)
                 for i, chunk in enumerate(chunks):
                     lc_docs.append(
                         LCDocument(
@@ -255,7 +255,7 @@ class RAGIndexBuildView(APIView):
                             metadata={
                                 "title": doc.title,
                                 "id": str(doc.public_id),
-                                "chunk_id": i,  # opcional: identificar qual pedaço
+                                "chunk_id": i,
                             },
                         )
                     )
