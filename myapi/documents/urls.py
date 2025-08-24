@@ -1,11 +1,22 @@
 from django.urls import path
-
-from documents.views import (AskQuestionView, DocumentDetailView, DocumentListView,
-                    DocumentUploadView)
+from documents.views import (
+    AskQuestionView,
+    AskRAGView,
+    DocumentDeleteView,
+    DocumentDetailView,
+    DocumentListView,
+    DocumentUploadView,
+    RAGIndexBuildView,
+)
 
 urlpatterns = [
+    path("update-docs/", RAGIndexBuildView.as_view(), name="update-documents"),
     path("upload/", DocumentUploadView.as_view(), name="upload-document"),
+    path(
+        "delete/<str:public_id>/", DocumentDeleteView.as_view(), name="delete-document"
+    ),
     path("ask/", AskQuestionView.as_view(), name="ask-question"),
+    path("ask-all/", AskRAGView.as_view(), name="ask-all-question"),
     path(
         "detail/<str:public_id>/", DocumentDetailView.as_view(), name="detail-document"
     ),
