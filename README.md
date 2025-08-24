@@ -40,21 +40,45 @@ ChatBot-UERJ/
 └── README.md
 ```
 
-## Como rodar o projeto
+## Passo a passo para rodar o projeto
 
-1. Instale as dependências:
+1. **Crie e ative o ambiente virtual:**
+   ```sh
+   python -m venv venv
+   # No Windows PowerShell:
+   .\venv\Scripts\Activate.ps1
+   # No Windows CMD:
+   venv\Scripts\activate.bat
+   # No Linux/Mac:
+   source venv/bin/activate
+   ```
+
+2. **Instale as dependências:**
    ```sh
    pip install -r requirements.txt
    ```
-2. Realize as migrações do banco:
+
+3. **Obtenha sua chave GEMINI_API_KEY:**
+   - Crie uma conta ou acesse o painel do Google Gemini.
+   - Gere uma chave de API e copie o valor.
+
+4. **Crie o arquivo `.env` na raiz do projeto e adicione sua chave:**
+   ```
+   GEMINI_API_KEY=coloque_sua_chave_aqui
+   ```
+
+5. **Realize as migrações do banco de dados:**
    ```sh
    cd myapi
    python manage.py migrate
    ```
-3. Inicie o servidor:
+
+6. **Rode o servidor Django:**
    ```sh
-   python manage.py runserver
+   python manage.py runserver 0.0.0.0:8000
    ```
+
+Pronto! O projeto estará rodando em http://localhost:8000
 
 ## Como rodar os testes
 
