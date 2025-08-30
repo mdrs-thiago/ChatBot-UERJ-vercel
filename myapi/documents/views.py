@@ -19,9 +19,10 @@ from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from documents.helpers.chunk_helper import split_juridical_chunks
+from documents.helpers.syntatic_search import syntactic_search
 from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
+from documents.helpers.stopwords import remove_stopwords
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -172,6 +173,8 @@ class AskRAGView(APIView):
     )
     def post(self, request):
         logger.info(f"[AskRAGView][post] - Informações recebidas: {request.data}")
+        full_docs = []
+
         serializer = RAGQuestionSerializer(data=request.data)
         if not serializer.is_valid():
             logger.warning(f"Pergunta inválida recebida: {request.data}")
@@ -179,6 +182,15 @@ class AskRAGView(APIView):
 
         question = normalize(serializer.validated_data["question"])
         top_k = request.data.get("top_k", 5)
+
+        docs_queryset = Document.objects.exclude(content__isnull=True).exclude(
+            content__exact=""
+        )
+        clean_question = remove_stopwords(question)
+        results = syntactic_search(clean_question, docs_queryset, top_k=top_k)
+        for _, _, public_id in results:
+            object_of_document = Document.objects.get(public_id=public_id)
+            full_docs.append(object_of_document)
 
         embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
 
@@ -191,21 +203,14 @@ class AskRAGView(APIView):
             return Response(
                 {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
             )
+        relevant_docs = db.similarity_search_with_score(question, k=top_k)
 
-        retriever = db.as_retriever(
-            search_type="similarity", search_kwargs={"k": top_k}
-        )
-        relevant_docs = retriever.get_relevant_documents(question)
-        logger.info(
-            f"Documentos relevantes encontrados: {[d.metadata for d in relevant_docs]}"
-        )
-
-        full_docs = []
-        for doc in relevant_docs:
+        for doc, _ in relevant_docs:
             object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
             full_docs.append(object_of_document)
 
         full_docs = list(set(full_docs))
+
         context = "\n\n".join([d.content for d in full_docs])
 
         answer = answer_question(question, context)
@@ -215,7 +220,12 @@ class AskRAGView(APIView):
                 "question": question,
                 "answer": answer,
                 "sources": [d.title for d in full_docs],
-                "chunks": [d.metadata for d in relevant_docs],
+                "semantic_search": [
+                    dict(d.metadata, score=score) for d, score in relevant_docs
+                ],
+                "syntactic_search": [
+                    {"id": index, "score": score} for _, score, index in results
+                ],
             },
             status=200,
         )
@@ -256,6 +266,7 @@ class RAGIndexBuildView(APIView):
                                 "title": doc.title,
                                 "id": str(doc.public_id),
                                 "chunk_id": i,
+                                "text_chunk": chunk,
                             },
                         )
                     )

@@ -1,6 +1,8 @@
 import os
+
 from documents.helpers.chunk_helper import split_juridical_chunks
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 def get_chunks(doc_content):
     strategy = os.getenv("CHUNK_STRATEGY", "own")
@@ -20,7 +22,7 @@ def get_chunks(doc_content):
                 "\n\n",
                 "\n",
                 ". ",
-                " "
-            ]
+                " ",
+            ],
         )
         return splitter.split_text(doc_content)

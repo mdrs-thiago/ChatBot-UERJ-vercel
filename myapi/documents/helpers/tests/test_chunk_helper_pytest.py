@@ -1,5 +1,6 @@
 from myapi.documents.helpers.chunk_helper import split_juridical_chunks
 
+
 def test_simple_split():
     text = "Art. 1º Este é o artigo um.\nArt. 2º Este é o artigo dois."
     chunks = split_juridical_chunks(text, max_len=30)
@@ -9,7 +10,9 @@ def test_simple_split():
 
 
 def test_hierarchy():
-    text = "CAPÍTULO I\nArt. 1º Texto do artigo.\n§ 1º Parágrafo.\nI – Inciso.\na) Alinea."
+    text = (
+        "CAPÍTULO I\nArt. 1º Texto do artigo.\n§ 1º Parágrafo.\nI – Inciso.\na) Alinea."
+    )
     chunks = split_juridical_chunks(text, max_len=50)
     assert any("CAPÍTULO I" in c for c in chunks)
     assert any("Art. 1º" in c for c in chunks)
