@@ -93,6 +93,20 @@ pytest myapi/documents/helpers/tests/test_chunk_helper_pytest.py
 pytest myapi/documents/helpers/tests/test_normalize_pytest.py
 ```
 
+## Estilos de Busca
+
+O projeto utiliza dois estilos de busca para encontrar os documentos mais relevantes para a pergunta do usuário:
+
+### 1. Busca Semântica
+- Utiliza embeddings (HuggingFace) e FAISS para comparar a pergunta com os chunks dos documentos.
+- Retorna os chunks mais similares, junto com o score de similaridade.
+- Endpoint: `POST /api/ask-all/`
+
+### 2. Busca Sintática
+- Utiliza busca por palavras-chave para encontrar documentos que contenham termos relevantes.
+- Retorna os documentos que mais se aproximam da pergunta pelo texto bruto.
+- Endpoint: `POST /api/ask-all/`
+
 ---
 
 Para dúvidas ou sugestões, entre em contato com o mantenedor do projeto.
