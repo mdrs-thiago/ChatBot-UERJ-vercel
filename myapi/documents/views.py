@@ -191,17 +191,10 @@ class AskRAGView(APIView):
             return Response(
                 {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
             )
-
-        retriever = db.as_retriever(
-            search_type="similarity", search_kwargs={"k": top_k}
-        )
-        relevant_docs = retriever.get_relevant_documents(question)
-        logger.info(
-            f"Documentos relevantes encontrados: {[d.metadata for d in relevant_docs]}"
-        )
+        relevant_docs = db.similarity_search_with_score(question, k=top_k)
 
         full_docs = []
-        for doc in relevant_docs:
+        for doc, _ in relevant_docs:
             object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
             full_docs.append(object_of_document)
 
@@ -215,7 +208,7 @@ class AskRAGView(APIView):
                 "question": question,
                 "answer": answer,
                 "sources": [d.title for d in full_docs],
-                "chunks": [d.metadata for d in relevant_docs],
+                "chunks": [dict(d.metadata, score=score) for d, score in relevant_docs],
             },
             status=200,
         )
@@ -256,6 +249,7 @@ class RAGIndexBuildView(APIView):
                                 "title": doc.title,
                                 "id": str(doc.public_id),
                                 "chunk_id": i,
+                                "text_chunk": chunk,
                             },
                         )
                     )
