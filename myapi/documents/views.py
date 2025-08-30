@@ -273,10 +273,8 @@ class RAGIndexBuildView(APIView):
 
             embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
 
-            # Cria o índice FAISS do zero
             db = FAISS.from_documents(lc_docs, embeddings)
 
-            # Salva no disco (pasta criada se não existir)
             os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
             db.save_local(FAISS_INDEX_PATH)
 
