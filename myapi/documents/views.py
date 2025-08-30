@@ -12,7 +12,7 @@ from documents.serializers import (
 )
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document as LCDocument
 from langchain_community.vectorstores import FAISS
 from rest_framework import status
