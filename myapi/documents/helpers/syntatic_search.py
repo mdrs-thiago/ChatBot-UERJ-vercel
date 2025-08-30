@@ -1,6 +1,7 @@
 from rapidfuzz import process, fuzz
 from documents.helpers.normalize import normalize
 
+
 def syntactic_search(question: str, documents, top_k=5):
     """
     Faz busca sintática (fuzzy matching) sobre os documentos.
@@ -12,10 +13,7 @@ def syntactic_search(question: str, documents, top_k=5):
     }
 
     results = process.extract(
-        query=question,
-        choices=choices,
-        scorer=fuzz.partial_ratio,
-        limit=top_k
+        query=question, choices=choices, scorer=fuzz.partial_ratio, limit=top_k
     )
 
     return results

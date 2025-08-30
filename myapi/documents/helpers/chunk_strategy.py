@@ -1,4 +1,5 @@
 import os
+
 from documents.helpers.chunk_helper import split_juridical_chunks
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 

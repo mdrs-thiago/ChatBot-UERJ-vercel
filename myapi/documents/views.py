@@ -22,6 +22,7 @@ from rest_framework.views import APIView
 from documents.helpers.syntatic_search import syntactic_search
 from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
+from documents.helpers.stopwords import remove_stopwords
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -172,8 +173,8 @@ class AskRAGView(APIView):
     )
     def post(self, request):
         logger.info(f"[AskRAGView][post] - Informações recebidas: {request.data}")
-        full_docs=[]
-        
+        full_docs = []
+
         serializer = RAGQuestionSerializer(data=request.data)
         if not serializer.is_valid():
             logger.warning(f"Pergunta inválida recebida: {request.data}")
@@ -182,8 +183,11 @@ class AskRAGView(APIView):
         question = normalize(serializer.validated_data["question"])
         top_k = request.data.get("top_k", 5)
 
-        docs_queryset = Document.objects.exclude(content__isnull=True).exclude(content__exact="")
-        results = syntactic_search(question, docs_queryset, top_k=top_k)
+        docs_queryset = Document.objects.exclude(content__isnull=True).exclude(
+            content__exact=""
+        )
+        clean_question = remove_stopwords(question)
+        results = syntactic_search(clean_question, docs_queryset, top_k=top_k)
         for _, _, public_id in results:
             object_of_document = Document.objects.get(public_id=public_id)
             full_docs.append(object_of_document)
@@ -216,8 +220,12 @@ class AskRAGView(APIView):
                 "question": question,
                 "answer": answer,
                 "sources": [d.title for d in full_docs],
-                "semantic_search": [dict(d.metadata, score=score) for d, score in relevant_docs],
-                'syntactic_search': [{'id': index, 'score': score} for _, score, index in results],
+                "semantic_search": [
+                    dict(d.metadata, score=score) for d, score in relevant_docs
+                ],
+                "syntactic_search": [
+                    {"id": index, "score": score} for _, score, index in results
+                ],
             },
             status=200,
         )
