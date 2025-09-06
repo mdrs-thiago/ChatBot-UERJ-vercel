@@ -1,8 +1,13 @@
-import os
 import logging
+import os
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from documents.backend.llm.llm_client import LLMClient
+from documents.helpers.chunk_strategy import get_chunks
+from documents.helpers.normalize import normalize
+from documents.helpers.stopwords import remove_stopwords
+from documents.helpers.syntatic_search import syntactic_search
 from documents.ia_service import answer_question
 from documents.models import Document
 from documents.serializers import (
@@ -12,18 +17,13 @@ from documents.serializers import (
 )
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document as LCDocument
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from documents.helpers.syntatic_search import syntactic_search
-from documents.helpers.chunk_strategy import get_chunks
-from documents.helpers.normalize import normalize
-from documents.helpers.stopwords import remove_stopwords
-from documents.backend.llm.llm_client import LLMClient
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)

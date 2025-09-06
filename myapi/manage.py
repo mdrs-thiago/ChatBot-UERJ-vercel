@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
-import os
 import logging
+import os
 import sys
+
 import nltk
 
 nltk.download("stopwords")
