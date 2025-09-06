@@ -1,5 +1,5 @@
-from rapidfuzz import process, fuzz
 from documents.helpers.normalize import normalize
+from rapidfuzz import fuzz, process
 
 
 def syntactic_search(question: str, documents, top_k=5):

@@ -130,3 +130,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "intfloat/multilingual-e5-large")
 DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
+
+
+DEFAULT_MODEL = os.getenv("MODEL_NAME", "gemini-2.0-flash")  # glm-4.5-flash para zai
+DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "gemini")  # zai

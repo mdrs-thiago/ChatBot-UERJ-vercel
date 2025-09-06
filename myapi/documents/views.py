@@ -23,6 +23,7 @@ from documents.helpers.syntatic_search import syntactic_search
 from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
 from documents.helpers.stopwords import remove_stopwords
+from documents.backend.llm.llm_client import LLMClient
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -213,7 +214,10 @@ class AskRAGView(APIView):
 
         context = "\n\n".join([d.content for d in full_docs])
 
-        answer = answer_question(question, context)
+        client = LLMClient(
+            model_name=settings.DEFAULT_MODEL, provider=settings.DEFAULT_PROVIDER
+        )
+        answer = client.generate(question, context)
 
         return Response(
             {
