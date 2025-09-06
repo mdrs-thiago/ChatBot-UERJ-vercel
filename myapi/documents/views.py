@@ -215,7 +215,7 @@ class AskRAGView(APIView):
         context = "\n\n".join([d.content for d in full_docs])
 
         client = LLMClient(
-            model_name=settings.DEFAULT_MODEL, provider=settings.DEFAULT_PROVIDER
+            model_name=settings.DEFAULT_MODEL_NAME_PROVIDER, provider=settings.DEFAULT_PROVIDER
         )
         answer = client.generate(question, context)
 
