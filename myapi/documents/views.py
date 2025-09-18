@@ -24,6 +24,7 @@ from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from documents.faiss_loader import db
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -195,18 +196,9 @@ class AskRAGView(APIView):
         
         logger.info(f"[AskRAGView][post] - finish syntactic_search with {len(results)} results")
 
-        embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
-
-        try:
-            db = FAISS.load_local(
-                FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True
-            )
-        except Exception as e:
-            logger.error(f"Erro ao carregar índice FAISS: {str(e)}")
-            return Response(
-                {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
-            )
         relevant_docs = db.similarity_search_with_score(question, k=top_k)
+        logger.info(f"[AskRAGView][post] - finish similarity_search_with_score {len(relevant_docs)} results")
+
 
         docs_to_use = relevant_docs
         filtered_relevant_docs = [(doc, score) for doc, score in relevant_docs if score*100 >= settings.SEMANTIC_SCORE_THRESHOLD]
@@ -220,6 +212,8 @@ class AskRAGView(APIView):
         full_docs = list(set(full_docs))
 
         context = "\n\n".join([d.content for d in full_docs])
+
+        logger.info(f"[AskRAGView][post] - start LLM with {len(full_docs)} docs")
 
         client = LLMClient(
             model_name=settings.DEFAULT_MODEL_NAME_PROVIDER, provider=settings.DEFAULT_PROVIDER
