@@ -192,6 +192,8 @@ class AskRAGView(APIView):
         for _, _, public_id in results:
             object_of_document = Document.objects.get(public_id=public_id)
             full_docs.append(object_of_document)
+        
+        logger.info(f"[AskRAGView][post] - finish syntactic_search with {len(results)} results")
 
         embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
 
@@ -206,7 +208,12 @@ class AskRAGView(APIView):
             )
         relevant_docs = db.similarity_search_with_score(question, k=top_k)
 
-        for doc, _ in relevant_docs:
+        docs_to_use = relevant_docs
+        filtered_relevant_docs = [(doc, score) for doc, score in relevant_docs if score*100 >= settings.SEMANTIC_SCORE_THRESHOLD]
+        if filtered_relevant_docs:
+            docs_to_use = filtered_relevant_docs
+
+        for doc, _ in docs_to_use:
             object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
             full_docs.append(object_of_document)
 

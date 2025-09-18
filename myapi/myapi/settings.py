@@ -137,3 +137,6 @@ DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
 
 #DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "gemini-2.0-flash")  # glm-4.5-flash para zai
 #DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "gemini")  # zai
+
+SYNTATIC_SCORE_THRESHOLD = float(os.getenv("SYNTATIC_SCORE_THRESHOLD", 60))
+SEMANTIC_SCORE_THRESHOLD = float(os.getenv("SEMANTIC_SCORE_THRESHOLD", 30))
