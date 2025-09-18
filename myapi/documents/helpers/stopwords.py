@@ -1,5 +1,6 @@
-from nltk.corpus import stopwords
 import re
+
+from nltk.corpus import stopwords
 
 stop_words = set(stopwords.words("portuguese"))
 

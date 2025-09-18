@@ -1,8 +1,13 @@
-import os
 import logging
+import os
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from documents.backend.llm.llm_client import LLMClient
+from documents.helpers.chunk_strategy import get_chunks
+from documents.helpers.normalize import normalize
+from documents.helpers.stopwords import remove_stopwords
+from documents.helpers.syntatic_search import syntactic_search
 from documents.ia_service import answer_question
 from documents.models import Document
 from documents.serializers import (
@@ -12,17 +17,14 @@ from documents.serializers import (
 )
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document as LCDocument
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from documents.helpers.syntatic_search import syntactic_search
-from documents.helpers.chunk_strategy import get_chunks
-from documents.helpers.normalize import normalize
-from documents.helpers.stopwords import remove_stopwords
+from documents.faiss_loader import db
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -191,21 +193,19 @@ class AskRAGView(APIView):
         for _, _, public_id in results:
             object_of_document = Document.objects.get(public_id=public_id)
             full_docs.append(object_of_document)
+        
+        logger.info(f"[AskRAGView][post] - finish syntactic_search with {len(results)} results")
 
-        embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
-
-        try:
-            db = FAISS.load_local(
-                FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True
-            )
-        except Exception as e:
-            logger.error(f"Erro ao carregar índice FAISS: {str(e)}")
-            return Response(
-                {"error": f"Erro ao carregar índice FAISS: {str(e)}"}, status=500
-            )
         relevant_docs = db.similarity_search_with_score(question, k=top_k)
+        logger.info(f"[AskRAGView][post] - finish similarity_search_with_score {len(relevant_docs)} results")
 
-        for doc, _ in relevant_docs:
+
+        docs_to_use = relevant_docs
+        filtered_relevant_docs = [(doc, score) for doc, score in relevant_docs if score*100 >= settings.SEMANTIC_SCORE_THRESHOLD]
+        if filtered_relevant_docs:
+            docs_to_use = filtered_relevant_docs
+
+        for doc, _ in docs_to_use:
             object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
             full_docs.append(object_of_document)
 
@@ -213,7 +213,12 @@ class AskRAGView(APIView):
 
         context = "\n\n".join([d.content for d in full_docs])
 
-        answer = answer_question(question, context)
+        logger.info(f"[AskRAGView][post] - start LLM with {len(full_docs)} docs")
+
+        client = LLMClient(
+            model_name=settings.DEFAULT_MODEL_NAME_PROVIDER, provider=settings.DEFAULT_PROVIDER
+        )
+        answer = client.generate(question, context)
 
         return Response(
             {

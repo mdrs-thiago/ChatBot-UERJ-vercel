@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
-import os
 import logging
+import os
 import sys
+
 import nltk
 
 nltk.download("stopwords")
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=getattr(logging, log_level), format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+
 
 def main():
     """Run administrative tasks."""
