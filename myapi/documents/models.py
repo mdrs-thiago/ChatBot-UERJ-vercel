@@ -11,3 +11,9 @@ class Document(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class LatencyLLM(models.Model):
+    provider = models.CharField(max_length=50)
+    latency = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)

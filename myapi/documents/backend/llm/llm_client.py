@@ -4,6 +4,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from google import genai
+from documents.decorators.latency_decorator import collect_latency
 
 load_dotenv()
 
@@ -32,7 +33,8 @@ class LLMClient:
         else:
             raise ValueError(f"Provider {provider} não suportado")
 
-    def generate(self, question, context):
+    @collect_latency()
+    def generate(self, question, context, metrics_collector=None):
         prompt = f"Contexto: {context}\n\nPergunta: {question}\n\nResponda com base no contexto."
 
         if self.provider == "gemini":
