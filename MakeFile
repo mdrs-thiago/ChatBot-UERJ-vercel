@@ -13,3 +13,4 @@ setup: venv
 run:
 	venv/Scripts/activate
 	python myapi\manage.py runserver 0.0.0.0:8000
+
