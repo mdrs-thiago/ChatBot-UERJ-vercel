@@ -31,6 +31,7 @@ from django.db.utils import OperationalError
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
 
+
 class HealthCheckView(APIView):
     """
     Healthcheck da aplicação.
@@ -40,10 +41,13 @@ class HealthCheckView(APIView):
     def get(self, request):
         db_status = "ok"
         try:
-            connections['default'].cursor()
+            connections["default"].cursor()
         except OperationalError:
             db_status = "fail"
 
-        status_code = status.HTTP_200_OK if db_status == "ok" else status.HTTP_503_SERVICE_UNAVAILABLE
+        status_code = (
+            status.HTTP_200_OK
+            if db_status == "ok"
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        )
         return Response({"status": "ok", "database": db_status}, status=status_code)
-    

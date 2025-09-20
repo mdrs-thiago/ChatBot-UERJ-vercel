@@ -3,6 +3,7 @@
 import os
 from django.http import JsonResponse
 
+
 class APIKeyMiddleware:
     """
     Middleware para autenticação via X-API-KEY.
@@ -13,7 +14,7 @@ class APIKeyMiddleware:
         self.API_KEY = os.getenv("API_KEY", "minha_chave_teste")
 
     def __call__(self, request):
-        public_paths = ["/admin", "/health"] 
+        public_paths = ["/admin", "/health"]
         if any(request.path.startswith(p) for p in public_paths):
             return self.get_response(request)
 
