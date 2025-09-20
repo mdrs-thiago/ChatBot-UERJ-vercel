@@ -1,8 +1,10 @@
-import time
 import logging
+import time
+
 from documents.models import LatencyLLM
 
 logger = logging.getLogger(__name__)
+
 
 def collect_latency(provider_arg_name="provider"):
     def decorator(func):
@@ -21,5 +23,7 @@ def collect_latency(provider_arg_name="provider"):
                 logger.warning(f"Erro ao salvar latência no banco: {e}")
             logger.info(f"[latency][{provider}] {latency:.3f}s")
             return result
+
         return wrapper
+
     return decorator

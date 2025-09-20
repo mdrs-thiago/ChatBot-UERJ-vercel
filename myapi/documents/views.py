@@ -4,6 +4,7 @@ import os
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from documents.backend.llm.llm_client import LLMClient
+from documents.faiss_loader import db
 from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
 from documents.helpers.stopwords import remove_stopwords
@@ -24,7 +25,6 @@ from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from documents.faiss_loader import db
 
 FAISS_INDEX_PATH = "faiss_index"
 logger = logging.getLogger(__name__)
@@ -193,15 +193,22 @@ class AskRAGView(APIView):
         for _, _, public_id in results:
             object_of_document = Document.objects.get(public_id=public_id)
             full_docs.append(object_of_document)
-        
-        logger.info(f"[AskRAGView][post] - finish syntactic_search with {len(results)} results")
+
+        logger.info(
+            f"[AskRAGView][post] - finish syntactic_search with {len(results)} results"
+        )
 
         relevant_docs = db.similarity_search_with_score(question, k=top_k)
-        logger.info(f"[AskRAGView][post] - finish similarity_search_with_score {len(relevant_docs)} results")
-
+        logger.info(
+            f"[AskRAGView][post] - finish similarity_search_with_score {len(relevant_docs)} results"
+        )
 
         docs_to_use = relevant_docs
-        filtered_relevant_docs = [(doc, score) for doc, score in relevant_docs if score*100 >= settings.SEMANTIC_SCORE_THRESHOLD]
+        filtered_relevant_docs = [
+            (doc, score)
+            for doc, score in relevant_docs
+            if score * 100 >= settings.SEMANTIC_SCORE_THRESHOLD
+        ]
         if filtered_relevant_docs:
             docs_to_use = filtered_relevant_docs
 
@@ -216,7 +223,8 @@ class AskRAGView(APIView):
         logger.info(f"[AskRAGView][post] - start LLM with {len(full_docs)} docs")
 
         client = LLMClient(
-            model_name=settings.DEFAULT_MODEL_NAME_PROVIDER, provider=settings.DEFAULT_PROVIDER
+            model_name=settings.DEFAULT_MODEL_NAME_PROVIDER,
+            provider=settings.DEFAULT_PROVIDER,
         )
         answer = client.generate(question, context)
 

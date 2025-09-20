@@ -2,13 +2,14 @@ import logging
 import os
 
 import requests
+from documents.decorators.latency_decorator import collect_latency
 from dotenv import load_dotenv
 from google import genai
-from documents.decorators.latency_decorator import collect_latency
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
 
 class LLMClient:
     def __init__(self, model_name, provider="gemini", max_tokens=500, temperature=0.6):

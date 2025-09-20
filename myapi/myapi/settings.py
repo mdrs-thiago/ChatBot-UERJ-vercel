@@ -13,6 +13,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -78,13 +83,7 @@ WSGI_APPLICATION = "myapi.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
+DATABASES = {"default": dj_database_url.config(default=os.getenv("DATABASE_URL"))}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -131,10 +130,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "intfloat/multilingual-e5-large")
 DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
 
-#DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai
-#DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
+# DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai
+# DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
 
-DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "gemini-2.0-flash")  # glm-4.5-flash para zai
+DEFAULT_MODEL_NAME_PROVIDER = os.getenv(
+    "MODEL_NAME", "gemini-2.0-flash"
+)  # glm-4.5-flash para zai
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "gemini")  # zai
 
 SYNTATIC_SCORE_THRESHOLD = float(os.getenv("SYNTATIC_SCORE_THRESHOLD", 60))

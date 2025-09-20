@@ -1,6 +1,6 @@
+from django.conf import settings
 from documents.helpers.normalize import normalize
 from rapidfuzz import fuzz, process
-from django.conf import settings
 
 
 def syntactic_search(question: str, documents, top_k=5):
