@@ -22,7 +22,13 @@ def collect_latency(provider_arg_name="provider"):
             except Exception as e:
                 logger.warning(f"Erro ao salvar latência no banco: {e}")
             logger.info(f"[latency][{provider}] {latency:.3f}s")
-            return result
+            answer = {
+                'metrics':{
+                    'latency': latency,
+                },
+                'answer': result,
+            }
+            return answer
 
         return wrapper
 

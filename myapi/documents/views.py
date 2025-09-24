@@ -226,12 +226,13 @@ class AskRAGView(APIView):
             model_name=settings.DEFAULT_MODEL_NAME_PROVIDER,
             provider=settings.DEFAULT_PROVIDER,
         )
-        answer = client.generate(question, context)
+        dict_answer = client.generate(question, context)
 
         return Response(
             {
                 "question": question,
-                "answer": answer,
+                "answer": dict_answer.get('answer'),
+                'metrics': dict_answer.get('metrics', {}),
                 "sources": [d.title for d in full_docs],
                 "semantic_search": [
                     dict(d.metadata, score=score) for d, score in relevant_docs
