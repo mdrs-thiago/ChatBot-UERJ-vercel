@@ -9,6 +9,7 @@ from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
 from documents.helpers.stopwords import remove_stopwords
 from documents.helpers.syntatic_search import syntactic_search
+from documents.helpers.resolution_search import normalize_resolution
 from documents.ia_service import answer_question
 from documents.models import Document
 from documents.serializers import (
@@ -182,13 +183,17 @@ class AskRAGView(APIView):
             logger.warning(f"Pergunta inválida recebida: {request.data}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        question = normalize(serializer.validated_data["question"])
         top_k = request.data.get("top_k", 5)
 
         docs_queryset = Document.objects.exclude(content__isnull=True).exclude(
             content__exact=""
         )
+        question = normalize(serializer.validated_data["question"])
         clean_question = remove_stopwords(question)
+        resolution = normalize_resolution(serializer.validated_data["question"])
+        if resolution and settings.FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH:
+            logger.info(f"[AskRAGView][post] - Resolution find: {resolution}")
+            clean_question = resolution
         results = syntactic_search(clean_question, docs_queryset, top_k=top_k)
         for _, _, public_id in results:
             object_of_document = Document.objects.get(public_id=public_id)
@@ -231,8 +236,8 @@ class AskRAGView(APIView):
         return Response(
             {
                 "question": question,
-                "answer": dict_answer.get('answer'),
-                'metrics': dict_answer.get('metrics', {}),
+                "answer": dict_answer.get("answer"),
+                "metrics": dict_answer.get("metrics", {}),
                 "sources": [d.title for d in full_docs],
                 "semantic_search": [
                     dict(d.metadata, score=score) for d, score in relevant_docs
