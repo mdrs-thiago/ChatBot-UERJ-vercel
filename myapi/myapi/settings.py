@@ -132,8 +132,8 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "intfloat/multilingual-e5-large")
+HUGGINGFACE_HUB_TOKEN = os.getenv("HUGGINGFACE_HUB_TOKEN", "")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "google/embeddinggemma-300m")
 DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
 
 # DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai
