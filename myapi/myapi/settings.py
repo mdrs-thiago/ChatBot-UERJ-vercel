@@ -136,8 +136,8 @@ HUGGINGFACE_HUB_TOKEN = os.getenv("HUGGINGFACE_HUB_TOKEN", "")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "google/embeddinggemma-300m")
 DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
 
-# DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai
-# DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
+#DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai
+#DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
 
 DEFAULT_MODEL_NAME_PROVIDER = os.getenv(
     "MODEL_NAME", "gemini-2.0-flash"

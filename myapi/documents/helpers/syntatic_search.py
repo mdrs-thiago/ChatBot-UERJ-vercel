@@ -8,7 +8,7 @@ def syntactic_search(question: str, documents, top_k=5):
     Faz busca sintática (fuzzy matching) sobre os documentos.
     """
     choices = {
-        doc.public_id: normalize(doc.content)
+        doc.public_id: normalize(doc.content).lower()
         for doc in documents
         if doc.content and doc.content.strip()
     }

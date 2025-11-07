@@ -156,7 +156,7 @@ class AskRAGView(APIView):
     """
 
     @swagger_auto_schema(
-        operation_description="Pergunta usando RAG com base nos documentos salvos.",
+        operation_description="Recebe uma pergunta do usuário e retorna uma resposta utilizando a estratégia RAG (Retrieval-Augmented Generation). O endpoint realiza buscas sintática e semântica nos documentos armazenados para recuperar os trechos mais relevantes antes de gerar a resposta. Recebe como parâmetros a pergunta ('question') e a quantidade de documentos a considerar ('top_k', opcional, padrão: 5). Retorna a resposta gerada, as fontes consultadas e métricas de relevância dos documentos.",
         tags=["Document"],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -243,7 +243,7 @@ class AskRAGView(APIView):
                     dict(d.metadata, score=score) for d, score in relevant_docs
                 ],
                 "syntactic_search": [
-                    {"id": index, "score": score} for _, score, index in results
+                    {"title": Document.objects.get(public_id=index).title, "id": index, "score": score} for _, score, index in results
                 ],
             },
             status=200,
