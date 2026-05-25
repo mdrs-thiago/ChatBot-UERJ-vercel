@@ -12,14 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    def __init__(self, model_name, provider="gemini", max_tokens=500, temperature=0.6):
+    def __init__(self, model_name, provider="gemini", max_tokens=500, temperature=0.6, api_key=None):
         self.model_name = model_name
         self.provider = provider.lower()
         self.max_tokens = max_tokens
         self.temperature = temperature
 
         if self.provider == "gemini":
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+            client_key = api_key or os.environ.get("GEMINI_API_KEY")
+            client = genai.Client(api_key=client_key)
             self.gemini_client = client
         elif self.provider == "moonshotai":
             self.moonshot_api_key = os.environ.get("MOONSHOT_API_KEY")
@@ -34,11 +35,52 @@ class LLMClient:
         else:
             raise ValueError(f"Provider {provider} não suportado")
 
+    def _build_history_text(self, conversation_history):
+        """Build a formatted conversation history string for prompt injection (Gemini)."""
+        if not conversation_history:
+            return ""
+        lines = ["Histórico da conversa (para contexto):"]
+        for entry in conversation_history[-6:]:  # limit to last 6 messages
+            role = entry.get("role", "user")
+            text = entry.get("text", "")
+            label = "Usuário" if role == "user" else "Assistente"
+            lines.append(f"{label}: {text}")
+        return "\n".join(lines) + "\n\n"
+
+    def _build_messages(self, question, context, conversation_history=None):
+        """Build a messages list for chat-completion APIs (MoonshotAI, ZAI)."""
+        system_msg = (
+            "Você é o Assistente Institucional da UERJ. Responda às perguntas com base "
+            "no contexto fornecido sobre regulamentos da universidade. Seja preciso e cite "
+            "informações do contexto quando relevante. Se a resposta não estiver no contexto, "
+            "diga que não encontrou informação suficiente."
+        )
+        messages = [{"role": "system", "content": system_msg}]
+
+        # Inject history turns
+        if conversation_history:
+            for entry in conversation_history[-6:]:
+                role = entry.get("role", "user")
+                text = entry.get("text", "")
+                messages.append({"role": role, "content": text})
+
+        # Add current question with retrieved context
+        user_content = f"Contexto dos documentos:\n{context}\n\nPergunta: {question}"
+        messages.append({"role": "user", "content": user_content})
+        return messages
+
     @collect_latency()
-    def generate(self, question, context, metrics_collector=None):
-        prompt = f"Contexto: {context}\n\nPergunta: {question}\n\nResponda com base no contexto."
+    def generate(self, question, context, metrics_collector=None, conversation_history=None):
+        history_text = self._build_history_text(conversation_history)
 
         if self.provider == "gemini":
+            prompt = (
+                "Você é o Assistente Institucional da UERJ. Responda com base no contexto.\n\n"
+                f"{history_text}"
+                f"Contexto dos documentos:\n{context}\n\n"
+                f"Pergunta atual: {question}\n\n"
+                "Responda de forma clara e precisa com base no contexto fornecido."
+            )
             response = self.gemini_client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
@@ -56,10 +98,7 @@ class LLMClient:
             }
             payload = {
                 "model": self.model_name,
-                "messages": [
-                    {"role": "system", "content": "Responda com base no contexto."},
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": self._build_messages(question, context, conversation_history),
                 "temperature": self.temperature,
             }
             response = requests.post(
@@ -82,10 +121,7 @@ class LLMClient:
             }
             payload = {
                 "model": self.model_name,
-                "messages": [
-                    {"role": "system", "content": "Responda com base no contexto"},
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": self._build_messages(question, context, conversation_history),
             }
             response = requests.post(self.zai_api_url, headers=headers, json=payload)
             if response.status_code == 200:

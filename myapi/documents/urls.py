@@ -7,7 +7,9 @@ from documents.views import (
     DocumentListView,
     DocumentUploadView,
     RAGIndexBuildView,
+    ChatUIView,
 )
+from documents.views_auth import LoginView, LogoutView
 
 urlpatterns = [
     path("update-docs/", RAGIndexBuildView.as_view(), name="update-documents"),
@@ -21,4 +23,8 @@ urlpatterns = [
         "detail/<str:public_id>/", DocumentDetailView.as_view(), name="detail-document"
     ),
     path("list/", DocumentListView.as_view(), name="list-document"),
+    path("chat/", ChatUIView.as_view(), name="chat-ui"),
+    path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
 ]
+

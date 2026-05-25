@@ -23,7 +23,7 @@ def answer_question(question, context):
     try:
         logger.info(f"[answer_question] Pergunta recebida: {question}")
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=f"Contexto: {context}\n\nPergunta: {question}\n\nResponda com base no contexto.",
         )
         if response.text:

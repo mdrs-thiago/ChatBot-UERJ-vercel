@@ -21,6 +21,7 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BASE_DIR.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,7 +37,11 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "chatbot-uerj.onrender.com",
+    ".vercel.app",
 ]
+
+if os.getenv("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS.extend(os.getenv("ALLOWED_HOSTS").split(","))
 
 
 # Application definition
@@ -89,7 +94,16 @@ WSGI_APPLICATION = "myapi.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {"default": dj_database_url.config(default=os.getenv("DATABASE_URL"))}
+db_from_env = dj_database_url.config(conn_max_age=600)
+if db_from_env:
+    DATABASES = {"default": db_from_env}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -126,6 +140,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -140,7 +155,7 @@ DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
 #DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "zai")  # zai
 
 DEFAULT_MODEL_NAME_PROVIDER = os.getenv(
-    "MODEL_NAME", "gemini-2.0-flash"
+    "MODEL_NAME", "gemini-2.5-flash"
 )  # glm-4.5-flash para zai
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "gemini")  # zai
 
@@ -150,3 +165,8 @@ SEMANTIC_SCORE_THRESHOLD = float(os.getenv("SEMANTIC_SCORE_THRESHOLD", 0))
 FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH = bool(
     strtobool(os.getenv("FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH", "true"))
 )
+
+# Auth
+LOGIN_URL = '/api/login/'
+LOGIN_REDIRECT_URL = '/api/chat/'
+LOGOUT_REDIRECT_URL = '/api/login/'

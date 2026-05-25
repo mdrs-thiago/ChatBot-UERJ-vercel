@@ -1,6 +1,10 @@
 import logging
 import os
 
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
+
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from documents.backend.llm.llm_client import LLMClient
@@ -27,7 +31,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-FAISS_INDEX_PATH = "faiss_index"
+FAISS_INDEX_PATH = os.path.join(settings.REPO_ROOT, "faiss_index")
 logger = logging.getLogger(__name__)
 
 
@@ -184,6 +188,12 @@ class AskRAGView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         top_k = request.data.get("top_k", 5)
+        
+        user_api_key = serializer.validated_data.get("api_key")
+        user_hf_key = serializer.validated_data.get("hf_key")
+        
+        if user_hf_key:
+            os.environ["HUGGINGFACE_HUB_TOKEN"] = user_hf_key
 
         docs_queryset = Document.objects.exclude(content__isnull=True).exclude(
             content__exact=""
@@ -227,11 +237,14 @@ class AskRAGView(APIView):
 
         logger.info(f"[AskRAGView][post] - start LLM with {len(full_docs)} docs")
 
+        conversation_history = serializer.validated_data.get("conversation_history", [])
+
         client = LLMClient(
             model_name=settings.DEFAULT_MODEL_NAME_PROVIDER,
             provider=settings.DEFAULT_PROVIDER,
+            api_key=user_api_key
         )
-        dict_answer = client.generate(question, context)
+        dict_answer = client.generate(question, context, conversation_history=conversation_history)
 
         return Response(
             {
@@ -240,10 +253,10 @@ class AskRAGView(APIView):
                 "metrics": dict_answer.get("metrics", {}),
                 "sources": [d.title for d in full_docs],
                 "semantic_search": [
-                    dict(d.metadata, score=score) for d, score in relevant_docs
+                    dict(d.metadata, score=score, public_id=d.metadata.get("id")) for d, score in relevant_docs
                 ],
                 "syntactic_search": [
-                    {"title": Document.objects.get(public_id=index).title, "id": index, "score": score} for _, score, index in results
+                    {"title": Document.objects.get(public_id=index).title, "id": index, "score": score, "public_id": str(index)} for _, score, index in results
                 ],
             },
             status=200,
@@ -322,3 +335,16 @@ class DocumentDeleteView(APIView):
             {"message": "Documento deletado com sucesso."},
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+@method_decorator(login_required, name='dispatch')
+class ChatUIView(TemplateView):
+    template_name = "documents/chat.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["api_key"] = os.getenv("API_KEY", "minha_chave_teste")
+        context["username"] = self.request.user.get_full_name() or self.request.user.username
+        return context
+
+

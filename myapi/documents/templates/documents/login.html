@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UERJ Chatbot | Acesso ao Sistema</title>
+    <meta name="description" content="Portal de acesso ao Assistente Inteligente da UERJ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --uerj-blue: #004a93;
+            --uerj-blue-dark: #003270;
+            --uerj-blue-light: #0072ce;
+            --uerj-gold: #d4a017;
+            --uerj-red: #c8102e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: stretch;
+            font-family: 'Inter', sans-serif;
+            background: #f0f4f8;
+        }
+
+        /* Left panel — branding */
+        .branding-panel {
+            width: 55%;
+            background: linear-gradient(145deg, #003270 0%, #004a93 40%, #0072ce 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .branding-panel::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            right: -15%;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .branding-panel::after {
+            content: '';
+            position: absolute;
+            bottom: -5%;
+            left: -10%;
+            width: 350px;
+            height: 350px;
+            border-radius: 50%;
+            background: rgba(212, 160, 23, 0.08);
+        }
+
+        .branding-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .uerj-logo-wrap {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .uerj-logo-wrap img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+        }
+
+        .branding-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: white;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .branding-title span {
+            color: var(--uerj-gold);
+        }
+
+        .branding-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.7;
+            max-width: 380px;
+            margin: 0 auto 48px;
+        }
+
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            text-align: left;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+        }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .branding-footer {
+            position: absolute;
+            bottom: 30px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.35);
+            letter-spacing: 0.05em;
+            z-index: 1;
+        }
+
+        /* Right panel — login form */
+        .login-panel {
+            width: 45%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            background: white;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            margin-bottom: 40px;
+        }
+
+        .login-header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* Error alert */
+        .error-alert {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--uerj-blue-light);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--uerj-blue) 0%, var(--uerj-blue-light) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 28px;
+            transition: all 0.2s;
+            letter-spacing: 0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 74, 147, 0.35);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .login-footer a {
+            color: var(--uerj-blue-light);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .branding-panel {
+                width: 100%;
+                padding: 40px 30px;
+                min-height: 280px;
+            }
+            .branding-title {
+                font-size: 1.8rem;
+            }
+            .feature-list {
+                display: none;
+            }
+            .login-panel {
+                width: 100%;
+                padding: 40px 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Left: Branding -->
+    <div class="branding-panel">
+        <div class="branding-content">
+            <div class="uerj-logo-wrap">
+                <img src="https://www.uerj.br/wp-content/uploads/2018/02/cropped-logomarca-uerj.png" alt="UERJ Logo">
+            </div>
+
+            <h2 class="branding-title">Assistente<br>Institucional <span>UERJ</span></h2>
+            <p class="branding-desc">
+                Acesse a base de regulamentos e documentos institucionais da universidade com inteligência artificial.
+            </p>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    Busca semântica e sintática em 800+ documentos
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    Conversa com memória de contexto
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    Fontes citadas com prévia do conteúdo
+                </div>
+            </div>
+        </div>
+        <div class="branding-footer">© UERJ — Sistema de Inteligência Institucional</div>
+    </div>
+
+    <!-- Right: Login Form -->
+    <div class="login-panel">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>Bem-vindo</h1>
+                <p>Entre com suas credenciais para acessar o sistema.</p>
+            </div>
+
+            {% if error %}
+            <div class="error-alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Usuário ou senha incorretos. Tente novamente.
+            </div>
+            {% endif %}
+
+            <form method="post" id="loginForm">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label for="id_username">Usuário</label>
+                    <input type="text" id="id_username" name="username" placeholder="seu.usuario" autocomplete="username" autofocus required>
+                </div>
+                <div class="field-group">
+                    <label for="id_password">Senha</label>
+                    <input type="password" id="id_password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+
+                <button type="submit" class="btn-login" id="submitBtn">
+                    Entrar no Sistema
+                </button>
+            </form>
+
+            <div class="login-footer">
+                Acesso restrito a usuários autorizados.<br>
+                Entre em contato com o <a href="mailto:admin@uerj.br">administrador</a> para obter acesso.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Loading state on submit
+        document.getElementById('loginForm').onsubmit = function () {
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'Entrando...';
+            btn.disabled = true;
+        };
+    </script>
+</body>
+</html>
