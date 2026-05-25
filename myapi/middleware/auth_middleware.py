@@ -14,6 +14,9 @@ class APIKeyMiddleware:
         self.API_KEY = os.getenv("API_KEY", "minha_chave_teste")
 
     def __call__(self, request):
+        if request.path == "/":
+            return self.get_response(request)
+
         public_paths = ["/admin", "/health", '/swagger', '/api/chat/', '/api/login/', '/api/logout/', '/favicon.ico']
         if any(request.path.startswith(p) for p in public_paths):
             return self.get_response(request)
