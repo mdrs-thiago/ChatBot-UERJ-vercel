@@ -175,3 +175,9 @@ FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH = bool(
 LOGIN_URL = '/api/login/'
 LOGIN_REDIRECT_URL = '/api/chat/'
 LOGOUT_REDIRECT_URL = '/api/login/'
+
+# NLTK local data configuration
+import nltk
+nltk_data_dir = os.path.join(REPO_ROOT, "nltk_data")
+if nltk_data_dir not in nltk.data.path:
+    nltk.data.path.insert(0, nltk_data_dir)

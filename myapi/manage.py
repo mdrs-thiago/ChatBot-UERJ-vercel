@@ -4,10 +4,6 @@ import logging
 import os
 import sys
 
-import nltk
-
-nltk.download("stopwords")
-
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level),
