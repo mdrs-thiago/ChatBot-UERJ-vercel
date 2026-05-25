@@ -15,7 +15,6 @@ from pathlib import Path
 
 import dj_database_url
 from dotenv import load_dotenv
-from distutils.util import strtobool
 
 load_dotenv()
 
@@ -167,9 +166,7 @@ DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "gemini")  # zai
 SYNTATIC_SCORE_THRESHOLD = float(os.getenv("SYNTATIC_SCORE_THRESHOLD", 0))
 SEMANTIC_SCORE_THRESHOLD = float(os.getenv("SEMANTIC_SCORE_THRESHOLD", 0))
 
-FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH = bool(
-    strtobool(os.getenv("FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH", "true"))
-)
+FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH = os.getenv("FEATURE_FLAG_ENABLE_RESOLUTION_SEARCH", "true").lower() in ("true", "1", "t", "y", "yes")
 
 # Auth
 LOGIN_URL = '/api/login/'
