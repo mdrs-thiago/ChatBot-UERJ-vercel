@@ -1,0 +1,5 @@
+[tool.vercel]
+entrypoint = "myapi.myapi.wsgi:app"
+
+[tool.vercel.scripts]
+build = "bash build.sh"
