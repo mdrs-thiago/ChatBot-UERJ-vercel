@@ -96,6 +96,10 @@ WSGI_APPLICATION = "myapi.wsgi.application"
 
 db_from_env = dj_database_url.config(conn_max_age=600)
 if db_from_env:
+    # Sanitize parsed database options (remove non-standard keys not supported by psycopg2)
+    if "OPTIONS" in db_from_env:
+        db_from_env["OPTIONS"].pop("supa", None)
+        db_from_env["OPTIONS"].pop("pgbouncer", None)
     DATABASES = {"default": db_from_env}
 else:
     DATABASES = {
