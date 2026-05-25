@@ -153,6 +153,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 HUGGINGFACE_HUB_TOKEN = os.getenv("HUGGINGFACE_HUB_TOKEN", "")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "google/embeddinggemma-300m")
+GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2")
 DEFAULT_CHUNK = os.getenv("CHUNK_STRATEGY", "recursive_character_text_splitter")
 
 #DEFAULT_MODEL_NAME_PROVIDER = os.getenv("MODEL_NAME", "glm-4.5-flash")  # glm-4.5-flash para zai

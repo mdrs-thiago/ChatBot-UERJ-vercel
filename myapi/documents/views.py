@@ -25,7 +25,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from langchain.schema import Document as LCDocument
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from documents.helpers.gemini_embeddings import GeminiEmbeddings
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -303,7 +303,7 @@ class RAGIndexBuildView(APIView):
                         )
                     )
 
-            embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
+            embeddings = GeminiEmbeddings()
 
             db = FAISS.from_documents(lc_docs, embeddings)
 

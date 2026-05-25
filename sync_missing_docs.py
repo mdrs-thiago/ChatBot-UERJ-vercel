@@ -23,7 +23,7 @@ from documents.helpers.chunk_strategy import get_chunks
 from documents.helpers.normalize import normalize
 from langchain.schema import Document as LCDocument
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from documents.helpers.gemini_embeddings import GeminiEmbeddings
 from django.conf import settings
 
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), 'documents', 'processed')
@@ -83,7 +83,7 @@ def main():
             missing[stem] = path
 
     print(f"\nMissing files (to import): {len(missing)}")
-    if not missing:
+    if not missing and not rebuild_faiss:
         print("Nothing to import. DB is in sync with filesystem.")
         return
 
@@ -119,12 +119,12 @@ def main():
     print(f"Skipped (empty content): {len(skipped_empty)}")
 
     # --- Step 5: Update FAISS index with new documents ---
-    if not imported:
-        print("No new documents imported; FAISS update skipped.")
+    if not imported and not rebuild_faiss:
+        print("No new documents imported and no rebuild requested; FAISS update skipped.")
         return
 
     print("\nUpdating FAISS index with new documents...")
-    embeddings = HuggingFaceEmbeddings(model_name=settings.DEFAULT_MODEL)
+    embeddings = GeminiEmbeddings()
 
     # Load existing FAISS index
     if os.path.exists(os.path.join(FAISS_INDEX_PATH, 'index.faiss')) and not rebuild_faiss:
