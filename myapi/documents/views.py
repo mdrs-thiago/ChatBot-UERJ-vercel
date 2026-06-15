@@ -206,8 +206,11 @@ class AskRAGView(APIView):
             clean_question = resolution
         results = syntactic_search(clean_question, docs_queryset, top_k=top_k)
         for _, _, public_id in results:
-            object_of_document = Document.objects.get(public_id=public_id)
-            full_docs.append(object_of_document)
+            try:
+                object_of_document = Document.objects.get(public_id=public_id)
+                full_docs.append(object_of_document)
+            except Document.DoesNotExist:
+                logger.warning(f"Document with public_id {public_id} from syntactic search not found in DB")
 
         logger.info(
             f"[AskRAGView][post] - finish syntactic_search with {len(results)} results"
@@ -228,10 +231,26 @@ class AskRAGView(APIView):
             docs_to_use = filtered_relevant_docs
 
         for doc, _ in docs_to_use:
-            object_of_document = Document.objects.get(public_id=doc.metadata.get("id"))
-            full_docs.append(object_of_document)
+            doc_id = doc.metadata.get("id")
+            try:
+                object_of_document = Document.objects.get(public_id=doc_id)
+                full_docs.append(object_of_document)
+            except Document.DoesNotExist:
+                logger.warning(f"Document with public_id {doc_id} from FAISS index not found in DB")
 
         full_docs = list(set(full_docs))
+
+        doc_titles = {}
+        for d in full_docs:
+            doc_titles[str(d.public_id)] = d.title
+            
+        for _, _, index in results:
+            idx_str = str(index)
+            if idx_str not in doc_titles:
+                try:
+                    doc_titles[idx_str] = Document.objects.get(public_id=index).title
+                except Document.DoesNotExist:
+                    doc_titles[idx_str] = "Documento não encontrado"
 
         context = "\n\n".join([d.content for d in full_docs])
 
@@ -256,7 +275,7 @@ class AskRAGView(APIView):
                     dict(d.metadata, score=score, public_id=d.metadata.get("id")) for d, score in relevant_docs
                 ],
                 "syntactic_search": [
-                    {"title": Document.objects.get(public_id=index).title, "id": index, "score": score, "public_id": str(index)} for _, score, index in results
+                    {"title": doc_titles.get(str(index), "Documento não encontrado"), "id": index, "score": score, "public_id": str(index)} for _, score, index in results
                 ],
             },
             status=200,

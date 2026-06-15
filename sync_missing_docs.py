@@ -123,54 +123,76 @@ def main():
         print("No new documents imported and no rebuild requested; FAISS update skipped.")
         return
 
-    print("\nUpdating FAISS index with new documents...")
+    print("\nUpdating FAISS index...")
     embeddings = GeminiEmbeddings()
 
-    # Load existing FAISS index
-    if os.path.exists(os.path.join(FAISS_INDEX_PATH, 'index.faiss')) and not rebuild_faiss:
-        print("  Loading existing FAISS index...")
-        db_faiss = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+    # Try to load existing FAISS index
+    db_faiss = None
+    if os.path.exists(os.path.join(FAISS_INDEX_PATH, 'index.faiss')):
+        try:
+            print("  Loading existing FAISS index...")
+            db_faiss = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
+            # Check dimension mismatch
+            if db_faiss.index.d != embeddings.dimension:
+                print(f"  Dimension mismatch (existing index: {db_faiss.index.d}, new embeddings: {embeddings.dimension}). Resetting index.")
+                db_faiss = None
+        except Exception as e:
+            print(f"  Failed to load existing FAISS index: {e}. Resetting index.")
+            db_faiss = None
 
-        # Build LangChain Documents for new docs only
-        new_lc_docs = []
-        for doc in imported:
-            chunks = get_chunks(doc.content)
-            for i, chunk in enumerate(chunks):
-                new_lc_docs.append(LCDocument(
-                    page_content=normalize(chunk),
-                    metadata={
-                        'title': doc.title,
-                        'id': str(doc.public_id),
-                        'chunk_id': i,
-                        'text_chunk': chunk,
-                    }
-                ))
-        print(f"  Adding {len(new_lc_docs)} chunks from {len(imported)} new docs...")
-        db_faiss.add_documents(new_lc_docs)
-        db_faiss.save_local(FAISS_INDEX_PATH)
-        print("  FAISS index updated and saved.")
+    # Get already indexed document public_ids if index exists
+    indexed_ids = set()
+    if db_faiss is not None:
+        for doc in db_faiss.docstore._dict.values():
+            if doc.metadata and 'id' in doc.metadata:
+                indexed_ids.add(str(doc.metadata['id']))
+        print(f"  Found {len(indexed_ids)} documents already in FAISS index.")
+
+    # Determine which documents need to be indexed
+    all_docs = Document.objects.exclude(content__isnull=True).exclude(content__exact='')
+    
+    if rebuild_faiss:
+        docs_to_index = [doc for doc in all_docs if str(doc.public_id) not in indexed_ids]
+        print(f"  Rebuild requested. Total documents in DB: {all_docs.count()}. Remaining to index: {len(docs_to_index)}")
     else:
-        # Full rebuild (either no index or --rebuild-faiss flag)
-        print("  Building full FAISS index from all DB documents...")
-        all_docs = Document.objects.exclude(content__isnull=True).exclude(content__exact='')
-        lc_docs = []
-        for doc in all_docs:
-            chunks = get_chunks(doc.content)
-            for i, chunk in enumerate(chunks):
-                lc_docs.append(LCDocument(
-                    page_content=normalize(chunk),
-                    metadata={
-                        'title': doc.title,
-                        'id': str(doc.public_id),
-                        'chunk_id': i,
-                        'text_chunk': chunk,
-                    }
-                ))
-        print(f"  Building index with {len(lc_docs)} total chunks...")
-        db_faiss = FAISS.from_documents(lc_docs, embeddings)
+        docs_to_index = [doc for doc in imported if str(doc.public_id) not in indexed_ids]
+        print(f"  Incremental update. Total imported: {len(imported)}. Remaining to index: {len(docs_to_index)}")
+
+    if not docs_to_index:
+        print("  All target documents are already indexed in FAISS. Skipping embedding step.")
+    else:
+        print(f"  Indexing {len(docs_to_index)} documents in batches of 10...")
         os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
-        db_faiss.save_local(FAISS_INDEX_PATH)
-        print("  Full FAISS index built and saved.")
+        
+        batch_size = 10
+        for b_idx in range(0, len(docs_to_index), batch_size):
+            batch_docs = docs_to_index[b_idx:b_idx+batch_size]
+            
+            batch_lc_docs = []
+            for doc in batch_docs:
+                chunks = get_chunks(doc.content)
+                for i, chunk in enumerate(chunks):
+                    batch_lc_docs.append(LCDocument(
+                        page_content=normalize(chunk),
+                        metadata={
+                            'title': doc.title,
+                            'id': str(doc.public_id),
+                            'chunk_id': i,
+                            'text_chunk': chunk,
+                        }
+                    ))
+            
+            if batch_lc_docs:
+                print(f"  Embedding batch {b_idx//batch_size + 1}/{(len(docs_to_index)-1)//batch_size + 1} ({len(batch_lc_docs)} chunks from {len(batch_docs)} docs)...")
+                if db_faiss is None:
+                    db_faiss = FAISS.from_documents(batch_lc_docs, embeddings)
+                else:
+                    db_faiss.add_documents(batch_lc_docs)
+                
+                db_faiss.save_local(FAISS_INDEX_PATH)
+                print(f"  Saved batch progress to {FAISS_INDEX_PATH}.")
+
+        print("  FAISS index build/update completed successfully.")
 
     print("\n" + "=" * 60)
     print(f"Sync complete! {len(imported)} new documents added.")
